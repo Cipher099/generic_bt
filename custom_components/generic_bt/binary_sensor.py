@@ -47,6 +47,7 @@ class GenericBTBinarySensor(GenericBTEntity, BinarySensorEntity):
         self.async_write_ha_state()
 
     async def read_gatt(self, target_uuid):
+        # Example data: 15ff6400cfe613070237cf3c0f1a3100030c0000d80d094865616c7468205363616c65
         await self._device.read_gatt(target_uuid)
         self.async_write_ha_state()
 
