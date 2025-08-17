@@ -1,4 +1,4 @@
-from homeassistant import config_entries
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.bluetooth.passive_update_processor import (
     PassiveBluetoothDataProcessor,
     PassiveBluetoothDataUpdate,
@@ -28,48 +28,28 @@ def sensor_update_to_bluetooth_data_update(parsed_data):
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: config_entries.ConfigEntry,
+    entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the example BLE sensors."""
     coordinator: PassiveBluetoothProcessorCoordinator = hass.data[DOMAIN][
         entry.entry_id
     ]
-
-    new_sensor = [
-        BluetoothSensorEntity(
-            SensorEntityDescription(
-                key=ATTR_BODY_SCORE,
-                translation_key="body_score",
-                suggested_display_precision=0,
-            ),
-            Metric.BODY_SCORE,
-        )
-    ]
-    
     processor = PassiveBluetoothDataProcessor(sensor_update_to_bluetooth_data_update)
-    entry.async_on_unload(
-        processor.async_add_entities_listener(
-            BluetoothSensorEntity, async_add_entities
-        )
-    )
-    async_add_entities(new_sensor)
-    entry.async_on_unload(coordinator.async_register_processor(processor))
+    async_add_entities([
+        BluetoothSensorEntity(SensorEntityDescription(
+                key=ATTR_VISCERAL,
+                translation_key="visceral_fat",
+                suggested_display_precision=0,
+            ),)
+    ])
 
 
 class BluetoothSensorEntity(PassiveBluetoothProcessorEntity, SensorEntity):
     """Representation of an example BLE sensor."""
 
-    _attr_state_class = SensorStateClass.MEASUREMENT
-
-    def __init__(
-        self,
-        entity_description: SensorEntityDescription,
-        metric: Metric,
-    ):
+    def __init__(self, entity_description: SensorEntityDescription):
         super().__init__(entity_description)
-        self._metric = metric
-        self._get_attributes = get_attributes
 
     @property
     def native_value(self) -> float | int | str | None:

@@ -60,4 +60,6 @@ class GenericBTDevice:
         return data
 
     def update_from_advertisement(self, advertisement):
+        _LOGGER.debug(advertisement, exc_info=True)
+        print(advertisement)
         pass
