@@ -1,4 +1,10 @@
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import callback
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorStateClass,
+    SensorDeviceClass
+)
 from homeassistant.components.bluetooth.passive_update_processor import (
     PassiveBluetoothDataProcessor,
     PassiveBluetoothDataUpdate,
@@ -9,6 +15,11 @@ from homeassistant.components.bluetooth.passive_update_processor import (
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.const import (
+    EntityCategory,
+    UnitOfTemperature,
+    EVENT_STATE_CHANGED,
+)
 
 from .const import DOMAIN
 
@@ -26,32 +37,113 @@ def sensor_update_to_bluetooth_data_update(parsed_data):
     )
 
 
-async def async_setup_entry(
-    hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
-) -> None:
-    """Set up the example BLE sensors."""
-    coordinator: PassiveBluetoothProcessorCoordinator = hass.data[DOMAIN][
-        entry.entry_id
-    ]
-    processor = PassiveBluetoothDataProcessor(sensor_update_to_bluetooth_data_update)
-    async_add_entities([
-        BluetoothSensorEntity(SensorEntityDescription(
-                key=ATTR_VISCERAL,
-                translation_key="visceral_fat",
-                suggested_display_precision=0,
-            ),)
-    ])
+async def async_setup_entry(hass, config_entry, async_add_entities):
+    # device_type = config_entry.data.get("device_type", None)
+    async_add_entities([BluetoothWeightEntity(config_entry.data)])
+    async_add_entities([BluetoothVisceralFatEntity(config_entry.data)])
 
 
-class BluetoothSensorEntity(PassiveBluetoothProcessorEntity, SensorEntity):
-    """Representation of an example BLE sensor."""
+class GenericBluetoothEntity():
+    def __init__(self, config, registry=None):
+        self._registry = registry
+        self._name = "Generic"
+        self._weight = config.get("")
+        self._viseral = config.get("")
 
-    def __init__(self, entity_description: SensorEntityDescription):
-        super().__init__(entity_description)
+    def device_name(self):
+        return {
+            "name": "Generic Bluetooth",
+            "identifiers": {(DOMAIN, self._name)},
+            "manufacturer": "Generic"
+        }
+
+
+class BluetoothWeightEntity(SensorEntity, GenericBluetoothEntity):
+
+    def __init__(self, config):
+        GenericBluetoothEntity.__init__(self, config)
 
     @property
-    def native_value(self) -> float | int | str | None:
-        """Return the native value."""
-        return self.processor.entity_data.get(self.entity_key)
+    def has_entity_name(self):
+        return True
+
+    @property
+    def unique_id(self):
+        return self.temperature_sensor_unique_id()
+
+    @property
+    def device_info(self):
+        return self.device_info()
+    
+    @property
+    def device_class(self):
+        return SensorDeviceClass.TEMPERATURE
+
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+
+    @property    
+    def native_unit_of_measurement(self):
+        return UnitOfTemperature.CELSIUS
+
+    @property
+    def native_value(self):
+        sensor_state = self.hass.states.get(self._weight_sensor) if self._weight_sensor is not None else None
+        return float(sensor_state.state) if valid_sensor_state(sensor_state) else None
+
+    async def async_added_to_hass(self):
+        self.hass.bus.async_listen(EVENT_STATE_CHANGED, self._async_handle_event)
+
+    @callback
+    async def _async_handle_event(self, event):
+        if event.data.get("entity_id") == self._temperature_sensor:
+            self.async_write_ha_state()
+
+class BluetoothBMIEntity(SensorEntity):
+    pass
+class BluetoothBodyFatRateEntity(SensorEntity):
+    pass
+class BluetoothMuscleMassEntity(SensorEntity):
+    pass
+class BluetoothVisceralFatEntity(SensorEntity, GenericBluetoothEntity):
+
+    def __init__(self, config):
+        GenericBluetoothEntity.__init__(self, config)
+
+    @property
+    def has_entity_name(self):
+        return True
+
+    @property
+    def unique_id(self):
+        return self.temperature_sensor_unique_id()
+
+    @property
+    def device_info(self):
+        return self.device_info()
+    
+    @property
+    def device_class(self):
+        return SensorDeviceClass.TEMPERATURE
+
+    @property
+    def state_class(self):
+        return SensorStateClass.MEASUREMENT
+
+    @property    
+    def native_unit_of_measurement(self):
+        return UnitOfTemperature.CELSIUS
+
+    @property
+    def native_value(self):
+        sensor_state = self.hass.states.get(self._visceral_sensor) if self._temperature_sensor is not None else None
+        return float(sensor_state.state) if valid_sensor_state(sensor_state) else None
+
+    async def async_added_to_hass(self):
+        self.hass.bus.async_listen(EVENT_STATE_CHANGED, self._async_handle_event)
+
+    @callback
+    async def _async_handle_event(self, event):
+        if event.data.get("entity_id") == self._temperature_sensor:
+            self.async_write_ha_state()
