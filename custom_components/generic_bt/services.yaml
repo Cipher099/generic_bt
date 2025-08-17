@@ -32,3 +32,10 @@ read_gatt:
       required: true
       selector:
         text:
+read_bt:
+  name: Decode data
+  description: Code from the scale
+  target:
+    entity:
+      domain: sensor
+      integration: generic_bt
