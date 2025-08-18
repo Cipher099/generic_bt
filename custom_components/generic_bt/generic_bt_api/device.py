@@ -18,16 +18,9 @@ class GenericBTDevice:
     """Generic BT Device Class"""
     def __init__(
             self, 
-            ble_device: str, 
-            detection_callback,
-            scanning_mode: str = "passive"):
+            ble_device: str
+            ):
         self._ble_device = ble_device
-        self._client: BleakClient | None = BleakClient(
-            address_or_ble_device=ble_device)
-        self._scanner: BleakScanner | None = BleakScanner(
-            service_uuids=ble_device,
-            detection_callback=detection_callback,
-            scanning_mode= scanning_mode)
         self._client_stack = AsyncExitStack()
         self._lock = asyncio.Lock()
 
@@ -76,25 +69,31 @@ class GenericBTDevice:
         print(advertisement)
         pass
 
-    async def async_start(self):
+    async def async_start(self, detection_callback, scanning_mode: str = "passive"):
         _LOGGER.debug(
             "Starting ScaleDataUpdateCoordinator for address: %s", self._ble_device
         )
         # https://bleak.readthedocs.io/en/latest/api/scanner.html
         # await self._scanner.start()
 
+        self._client: BleakClient | None = BleakClient(
+            address_or_ble_device=self._ble_device)
+        self._scanner: BleakScanner | None = BleakScanner(
+            service_uuids=self._ble_device,
+            detection_callback=detection_callback,
+            scanning_mode= scanning_mode)
+
         while True:
             device = await BleakScanner.find_device_by_filter(self._ble_device)
 
             if device is None:
                 # maybe asyncio.sleep() here for some seconds if you aren't in a hurry
-                asyncio.sleep(30)
+                asyncio.sleep(10)
                 continue
             try:
                 # await self._client.connect()
                 _LOGGER.debug("connected to", device.address)
                 await self._scanner.start()
-
 
                 # Not sure
                 connected_devices.add(device.address)

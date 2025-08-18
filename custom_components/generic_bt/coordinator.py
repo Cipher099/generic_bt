@@ -702,14 +702,9 @@ class ScaleDataUpdateCoordinator:
             # Initialize appropriate client
             try:
                 _LOGGER.debug("Initializing new SmartScale client")
-                self._client = GenericBTDevice(
-                    self.address,
-                    self.update_listeners,
-                    self.disconnect_listener,
-                    "passive",
-                )
+                self._client = GenericBTDevice(self.address)
 
-                await asyncio.wait_for(self._client.async_start(), timeout=30.0)
+                await asyncio.wait_for(self._client.async_start(self.update_listeners, self.disconnect_listener, scanning_mode="passive",), timeout=30.0)
                 _LOGGER.debug("Scale client started successfully")
             except asyncio.TimeoutError:
                 _LOGGER.error(
@@ -857,6 +852,9 @@ class ScaleDataUpdateCoordinator:
             data: The scale data to send to listeners.
         """
         _LOGGER.debug("Devices: %s, Data: %s", devices, data)
+        _LOGGER.debug("Manufature Data: %s", data.manufacturer_data)
+        _LOGGER.debug("Platform Data: %s", data.platform_data)
+        _LOGGER.debug("Service Data: %s", data.service_data)
 
         if not data:
             _LOGGER.warning("Received empty data update from scale %s", self.address)
