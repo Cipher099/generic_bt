@@ -8,6 +8,7 @@ from contextlib import AsyncExitStack
 from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
 
+
 _LOGGER = logging.getLogger(__name__)
 
 connected_devices = set() 
@@ -18,13 +19,11 @@ class GenericBTDevice:
     def __init__(
             self, 
             ble_device: str, 
-            detection_callback: any | None, 
-            disconnect_callback: any | None, 
+            detection_callback,
             scanning_mode: str = "passive"):
         self._ble_device = ble_device
         self._client: BleakClient | None = BleakClient(
-            address_or_ble_device=ble_device, 
-            disconnected_callback=disconnect_callback)
+            address_or_ble_device=ble_device)
         self._scanner: BleakScanner | None = BleakScanner(
             service_uuids=ble_device,
             detection_callback=detection_callback,
@@ -106,6 +105,6 @@ class GenericBTDevice:
                 # I'm not sure if manually disconnecting triggers disconnected_callback, (pretty easy to figure this out though)
                 # if so, you will be getting disconnected_callback called twice
                 # if not, you should call it here
-                self.disconnect_callback(self._client)
+                # self.disconnect_callback(self._client)
 
         pass

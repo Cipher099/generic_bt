@@ -12,6 +12,11 @@ from homeassistant.components.bluetooth import BluetoothServiceInfoBleak, async_
 from homeassistant.const import CONF_ADDRESS
 from homeassistant.data_entry_flow import FlowResult
 
+from bleak.backends.device import BLEDevice
+from bleak.backends.scanner import (
+    AdvertisementData,)
+import asyncio
+
 from .const import DOMAIN
 from .generic_bt_api.device import GenericBTDevice
 
@@ -38,6 +43,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.context["title_placeholders"] = {"name": human_readable_name(None, discovery_info.name, discovery_info.address)}
         return await self.async_step_user()
 
+
+    @callback
+    async def detect(self, devices: BLEDevice, data: AdvertisementData):
+        _LOGGER.debug("Detected devices")
+        pass
+
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Handle the user step to pick discovered device."""
         errors: dict[str, str] = {}
@@ -48,7 +59,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             local_name = discovery_info.name
             await self.async_set_unique_id(discovery_info.address, raise_on_progress=False)
             self._abort_if_unique_id_configured()
-            device = GenericBTDevice(discovery_info.device)
+            device = GenericBTDevice(discovery_info.device, detection_callback=detect)
             try:
                 await device.update()
             except BLEAK_EXCEPTIONS:
