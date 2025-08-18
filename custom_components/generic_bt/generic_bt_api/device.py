@@ -84,11 +84,11 @@ class GenericBTDevice:
             scanning_mode= scanning_mode)
 
         while True:
-            device = await BleakScanner.find_device_by_filter(self._ble_device)
+            device = await BleakScanner.find_device_by_address(self._ble_device)
 
             if device is None:
                 # maybe asyncio.sleep() here for some seconds if you aren't in a hurry
-                asyncio.sleep(10)
+                # asyncio.sleep(10)
                 continue
             try:
                 # await self._client.connect()

@@ -704,7 +704,8 @@ class ScaleDataUpdateCoordinator:
                 _LOGGER.debug("Initializing new SmartScale client")
                 self._client = GenericBTDevice(self.address)
 
-                await asyncio.wait_for(self._client.async_start(self.update_listeners, self.disconnect_listener, scanning_mode="passive",), timeout=30.0)
+                await asyncio.wait_for(self._client.async_start(
+                    self.update_listeners, self.disconnect_listener), timeout=30.0)
                 _LOGGER.debug("Scale client started successfully")
             except asyncio.TimeoutError:
                 _LOGGER.error(
