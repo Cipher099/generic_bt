@@ -22,7 +22,7 @@ from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH, DeviceIn
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_BIRTHDATE, CONF_CALC_BODY_METRICS, CONF_HEIGHT, CONF_SEX, DOMAIN
-from .coordinator import ScaleData, ScaleDataUpdateCoordinator
+from .coordinator import ScaleDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ async def async_setup_entry(
             address,
             coordinator,
             SensorEntityDescription(
-                key=WEIGHT_KEY,
+                key="kg",
                 icon="mdi:human-handsdown",
                 device_class=SensorDeviceClass.WEIGHT,
                 native_unit_of_measurement=UnitOfMass.KILOGRAMS,
@@ -130,7 +130,7 @@ async def async_setup_entry(
             address,
             coordinator,
             SensorEntityDescription(
-                key=IMPEDANCE_KEY,
+                key="ohms",
                 icon="mdi:omega",
                 native_unit_of_measurement=Units.OHM,
                 state_class=SensorStateClass.MEASUREMENT,
@@ -138,18 +138,18 @@ async def async_setup_entry(
         ),
     ]
 
-    if entry.data.get(CONF_CALC_BODY_METRICS):
-        sex: Sex = Sex.Male if entry.data.get(CONF_SEX) == "Male" else Sex.Female
+    # if entry.data.get(CONF_CALC_BODY_METRICS):
+    #     sex: Sex = Sex.Male if entry.data.get(CONF_SEX) == "Male" else Sex.Female
 
-        await coordinator.enable_body_metrics(
-            sex,
-            date.fromisoformat(entry.data.get(CONF_BIRTHDATE)),
-            entry.data.get(CONF_HEIGHT) / 100,
-        )
-        entities += [
-            ScaleSensor(entry.title, address, coordinator, desc)
-            for desc in SENSOR_DESCRIPTIONS
-        ]
+    #     await coordinator.enable_body_metrics(
+    #         sex,
+    #         date.fromisoformat(entry.data.get(CONF_BIRTHDATE)),
+    #         entry.data.get(CONF_HEIGHT) / 100,
+    #     )
+    #     entities += [
+    #         ScaleSensor(entry.title, address, coordinator, desc)
+    #         for desc in SENSOR_DESCRIPTIONS
+    #     ]
 
     def _update_unit(sensor: ScaleSensor, unit: str) -> ScaleSensor:
         if sensor._attr_device_class == SensorDeviceClass.WEIGHT:
@@ -158,7 +158,7 @@ async def async_setup_entry(
 
     display_unit: UnitOfMass = entry.data.get(CONF_UNIT_SYSTEM)
     coordinator.set_display_unit(
-        WeightUnit.KG if display_unit == UnitOfMass.KILOGRAMS else WeightUnit.LB
+        "kg" if display_unit == UnitOfMass.KILOGRAMS else "lb"
     )
     entities = [_update_unit(sensor, display_unit) for sensor in entities]
     async_add_entities(entities)
@@ -230,7 +230,7 @@ class ScaleSensor(RestoreSensor):
 
     def handle_update(
         self,
-        data: ScaleData,
+        data: any,
     ) -> None:
         """Handle updated data from the scale.
 
@@ -342,7 +342,7 @@ class ScaleWeightSensor(ScaleSensor):
 
     def handle_update(
         self,
-        data: ScaleData,
+        data: any,
     ) -> None:
         """Handle updated data from the scale."""
 

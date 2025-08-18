@@ -26,6 +26,7 @@ from bluetooth_data_tools import (
 )
 from habluetooth import HaScannerRegistration
 from homeassistant.core import HomeAssistant, callback
+from .generic_bt_api.device import GenericBTDevice
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -569,7 +570,7 @@ class ScaleDataUpdateCoordinator:
     """
 
     _client: Optional[None] = None
-    _display_unit: Optional[WeightUnit] = None
+    _display_unit: Optional[str] = None
     _scanner_change_cb_unregister: Optional[Callable[[], None]] = None
 
     body_metrics_enabled: bool = False
@@ -587,9 +588,9 @@ class ScaleDataUpdateCoordinator:
         self.address = address
         self._hass = hass
         self._lock = asyncio.Lock()
-        self._listeners: Dict[Callable[[], None], Callable[[ScaleData], None]] = {}
+        self._listeners: Dict[Callable[[], None], Callable[[any], None]] = {}
 
-    def set_display_unit(self, unit: WeightUnit) -> None:
+    def set_display_unit(self, unit:str) -> None:
         """Set the display unit for the scale.
 
         Args:
@@ -700,37 +701,37 @@ class ScaleDataUpdateCoordinator:
 
             # Initialize appropriate client
             try:
-                if self.body_metrics_enabled:
-                    if (
-                        self._sex is None
-                        or self._birthdate is None
-                        or self._height_m is None
-                    ):
-                        _LOGGER.error(
-                            "Body metrics enabled but required parameters are missing"
-                        )
-                        raise ValueError("Missing required body metrics parameters")
+                # if self.body_metrics_enabled:
+                #     if (
+                #         self._sex is None
+                #         or self._birthdate is None
+                #         or self._height_m is None
+                #     ):
+                #         _LOGGER.error(
+                #             "Body metrics enabled but required parameters are missing"
+                #         )
+                #         raise ValueError("Missing required body metrics parameters")
 
-                    _LOGGER.debug(
-                        "Initializing new EtekcitySmartFitnessScaleWithBodyMetrics client"
-                    )
-                    self._client = EtekcitySmartFitnessScaleWithBodyMetrics(
-                        self.address,
-                        self.update_listeners,
-                        self._sex,
-                        self._birthdate,
-                        self._height_m,
-                        self._display_unit,
-                        bleak_scanner_backend=scanner,
-                    )
-                else:
-                    _LOGGER.debug("Initializing new EtekcitySmartFitnessScale client")
-                    self._client = EtekcitySmartFitnessScale(
-                        self.address,
-                        self.update_listeners,
-                        self._display_unit,
-                        bleak_scanner_backend=scanner,
-                    )
+                #     _LOGGER.debug(
+                #         "Initializing new EtekcitySmartFitnessScale client"
+                #     )
+                #     self._client = EtekcitySmartFitnessScaleWithBodyMetrics(
+                #         self.address,
+                #         self.update_listeners,
+                #         self._sex,
+                #         self._birthdate,
+                #         self._height_m,
+                #         self._display_unit,
+                #         bleak_scanner_backend=scanner,
+                #     )
+                # else:
+                _LOGGER.debug("Initializing new SmartFitnessScale client")
+                self._client = GenericBTDevice(
+                    self.address,
+                    # self.update_listeners,
+                    # self._display_unit,
+                    # bleak_scanner_backend=scanner,
+                )
 
                 await asyncio.wait_for(self._client.async_start(), timeout=30.0)
                 _LOGGER.debug("Scale client started successfully")
@@ -848,7 +849,7 @@ class ScaleDataUpdateCoordinator:
 
     @callback
     def add_listener(
-        self, update_callback: Callable[[ScaleData], None]
+        self, update_callback: Callable[[any], None]
     ) -> Callable[[], None]:
         """Listen for data updates.
 
@@ -868,7 +869,7 @@ class ScaleDataUpdateCoordinator:
         return remove_listener
 
     @callback
-    def update_listeners(self, data: ScaleData) -> None:
+    def update_listeners(self, data: any) -> None:
         """Update all registered listeners with improved logging.
 
         Args:

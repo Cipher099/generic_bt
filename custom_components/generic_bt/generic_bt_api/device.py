@@ -37,10 +37,10 @@ class GenericBTDevice:
                     self._client = await self._client_stack.enter_async_context(BleakClient(self._ble_device, timeout=30))
                 except asyncio.TimeoutError as exc:
                     _LOGGER.debug("Timeout on connect", exc_info=True)
-                    raise IdealLedTimeout("Timeout on connect") from exc
+                    # raise IdealLedTimeout("Timeout on connect") from exc
                 except BleakError as exc:
                     _LOGGER.debug("Error on connect", exc_info=True)
-                    raise IdealLedBleakError("Error on connect") from exc
+                    # raise IdealLedBleakError("Error on connect") from exc
             else:
                 _LOGGER.debug("Connection reused")
 
