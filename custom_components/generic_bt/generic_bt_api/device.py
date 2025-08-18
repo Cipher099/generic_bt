@@ -5,7 +5,7 @@ import asyncio
 import logging
 from contextlib import AsyncExitStack
 
-from bleak import BleakClient
+from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
 
 _LOGGER = logging.getLogger(__name__)
@@ -13,9 +13,15 @@ _LOGGER = logging.getLogger(__name__)
 
 class GenericBTDevice:
     """Generic BT Device Class"""
-    def __init__(self, ble_device):
+    def __init__(self, ble_device: str, detection_callback: function, scanning_mode: str = "passive"):
         self._ble_device = ble_device
-        self._client: BleakClient | None = None
+        self._client: BleakClient | None = BleakClient(
+            address_or_ble_device=ble_device,
+            scanning_mode= scanning_mode)
+        self._scanner: BleakScanner | None = BleakScanner(
+            service_uuids=ble_device,
+            detection_callback=detection_callback,
+            scanning_mode= scanning_mode)
         self._client_stack = AsyncExitStack()
         self._lock = asyncio.Lock()
 
@@ -62,4 +68,11 @@ class GenericBTDevice:
     def update_from_advertisement(self, advertisement):
         _LOGGER.debug(advertisement, exc_info=True)
         print(advertisement)
+        pass
+
+    async def async_start(self):
+        _LOGGER.debug(
+            "Starting ScaleDataUpdateCoordinator for address: %s", self._ble_device
+        )
+        await self._scanner.start()
         pass

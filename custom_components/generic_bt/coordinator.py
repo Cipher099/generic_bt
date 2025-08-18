@@ -596,7 +596,7 @@ class ScaleDataUpdateCoordinator:
         Args:
             unit: The weight unit to display on the scale.
         """
-        _LOGGER.debug("Setting display unit to: %s", unit.name)
+        _LOGGER.debug("Setting display unit to: %s", unit)
         self._display_unit = unit
         if self._client:
             self._client.display_unit = unit
@@ -728,7 +728,8 @@ class ScaleDataUpdateCoordinator:
                 _LOGGER.debug("Initializing new SmartFitnessScale client")
                 self._client = GenericBTDevice(
                     self.address,
-                    # self.update_listeners,
+                    self.update_listeners,
+                    "passive",
                     # self._display_unit,
                     # bleak_scanner_backend=scanner,
                 )

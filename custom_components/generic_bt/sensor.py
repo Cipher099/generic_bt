@@ -157,8 +157,8 @@ async def async_setup_entry(
         return sensor
 
     display_unit: UnitOfMass = entry.data.get(CONF_UNIT_SYSTEM)
-    coordinator.set_display_unit(
-        "kg" if display_unit == UnitOfMass.KILOGRAMS else "lb"
+    coordinator.set_display_unit("kg"
+        # "kg" if display_unit == UnitOfMass.KILOGRAMS else "lb"
     )
     entities = [_update_unit(sensor, display_unit) for sensor in entities]
     async_add_entities(entities)
