@@ -701,37 +701,11 @@ class ScaleDataUpdateCoordinator:
 
             # Initialize appropriate client
             try:
-                # if self.body_metrics_enabled:
-                #     if (
-                #         self._sex is None
-                #         or self._birthdate is None
-                #         or self._height_m is None
-                #     ):
-                #         _LOGGER.error(
-                #             "Body metrics enabled but required parameters are missing"
-                #         )
-                #         raise ValueError("Missing required body metrics parameters")
-
-                #     _LOGGER.debug(
-                #         "Initializing new EtekcitySmartFitnessScale client"
-                #     )
-                #     self._client = EtekcitySmartFitnessScaleWithBodyMetrics(
-                #         self.address,
-                #         self.update_listeners,
-                #         self._sex,
-                #         self._birthdate,
-                #         self._height_m,
-                #         self._display_unit,
-                #         bleak_scanner_backend=scanner,
-                #     )
-                # else:
-                _LOGGER.debug("Initializing new SmartFitnessScale client")
+                _LOGGER.debug("Initializing new SmartScale client")
                 self._client = GenericBTDevice(
                     self.address,
                     self.update_listeners,
                     "passive",
-                    # self._display_unit,
-                    # bleak_scanner_backend=scanner,
                 )
 
                 await asyncio.wait_for(self._client.async_start(), timeout=30.0)
@@ -870,7 +844,7 @@ class ScaleDataUpdateCoordinator:
         return remove_listener
 
     @callback
-    def update_listeners(self, data: any) -> None:
+    def update_listeners(self, devices: BLEDevice, data: AdvertisementData) -> None:
         """Update all registered listeners with improved logging.
 
         Args:
@@ -879,6 +853,8 @@ class ScaleDataUpdateCoordinator:
         if not data:
             _LOGGER.warning("Received empty data update from scale %s", self.address)
             return
+        
+        _LOGGER.info("Devices: %s", devices)
 
         # Log received measurements
         measurements = list(data.measurements.keys())

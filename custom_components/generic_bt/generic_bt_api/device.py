@@ -16,8 +16,7 @@ class GenericBTDevice:
     def __init__(self, ble_device: str, detection_callback: function, scanning_mode: str = "passive"):
         self._ble_device = ble_device
         self._client: BleakClient | None = BleakClient(
-            address_or_ble_device=ble_device,
-            scanning_mode= scanning_mode)
+            address_or_ble_device=ble_device)
         self._scanner: BleakScanner | None = BleakScanner(
             service_uuids=ble_device,
             detection_callback=detection_callback,
