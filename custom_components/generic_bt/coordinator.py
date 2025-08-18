@@ -850,11 +850,11 @@ class ScaleDataUpdateCoordinator:
         Args:
             data: The scale data to send to listeners.
         """
+        _LOGGER.debug("Devices: %s, Data: %s", devices, data)
+
         if not data:
             _LOGGER.warning("Received empty data update from scale %s", self.address)
             return
-        
-        _LOGGER.info("Devices: %s", devices)
 
         # Log received measurements
         measurements = list(data.measurements.keys())

@@ -82,17 +82,18 @@ class GenericBTDevice:
             "Starting ScaleDataUpdateCoordinator for address: %s", self._ble_device
         )
         # https://bleak.readthedocs.io/en/latest/api/scanner.html
-        await self._scanner.start()
+        # await self._scanner.start()
 
         while True:
             device = await BleakScanner.find_device_by_filter(self._ble_device)
 
             if device is None:
                 # maybe asyncio.sleep() here for some seconds if you aren't in a hurry
+                asyncio.sleep(30)
                 continue
             try:
-                await self._client.connect()
-                print("connected to", device.address)
+                # await self._client.connect()
+                _LOGGER.debug("connected to", device.address)
                 await self._scanner.start()
 
 
