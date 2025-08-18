@@ -705,6 +705,7 @@ class ScaleDataUpdateCoordinator:
                 self._client = GenericBTDevice(
                     self.address,
                     self.update_listeners,
+                    self.disconnect_listener,
                     "passive",
                 )
 
@@ -842,6 +843,11 @@ class ScaleDataUpdateCoordinator:
 
         self._listeners[remove_listener] = update_callback
         return remove_listener
+    
+    @callback
+    def disconnect_listener(self, devices: BLEDevice, data: AdvertisementData) -> None:
+        _LOGGER.debug("Disconnected")
+        pass
 
     @callback
     def update_listeners(self, devices: BLEDevice, data: AdvertisementData) -> None:

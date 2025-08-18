@@ -18,8 +18,8 @@ class GenericBTDevice:
     def __init__(
             self, 
             ble_device: str, 
-            detection_callback, 
-            disconnect_callback,
+            detection_callback: any | None, 
+            disconnect_callback: any | None, 
             scanning_mode: str = "passive"):
         self._ble_device = ble_device
         self._client: BleakClient | None = BleakClient(
