@@ -19,23 +19,18 @@ PLATFORMS = [Platform.BINARY_SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Generic BT from a config entry."""
-    assert entry.unique_id is not None
     hass.data.setdefault(DOMAIN, {})
-    address: str = entry.data[CONF_ADDRESS]
-    ble_device = bluetooth.async_ble_device_from_address(hass, address.upper(), True)
-    if not ble_device:
-        raise ConfigEntryNotReady(f"Could not find Generic BT Device with address {address}")
-    # device = GenericBTDevice(ble_device)
+    address = entry.unique_id
 
-    coordinator = hass.data[DOMAIN][entry.entry_id] = ScaleDataUpdateCoordinator(hass, address=address)
-    entry.async_on_unload(coordinator.async_start())
+    assert address is not None
+    await close_stale_connections_by_address(address)
 
-    if not await coordinator.async_wait_ready():
-        raise ConfigEntryNotReady(f"{address} is not advertising state")
+    coordinator = ScaleDataUpdateCoordinator(hass, address)
 
-    entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+    hass.data[DOMAIN][entry.entry_id] = coordinator
+
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
+    entry.async_on_unload(coordinator.async_stop)
     return True
 
 
@@ -45,11 +40,9 @@ async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
-        if not hass.config_entries.async_entries(DOMAIN):
-            hass.data.pop(DOMAIN)
+    if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
+        coordinator: ScaleDataUpdateCoordinator = hass.data[DOMAIN].pop(entry.entry_id)
+        await coordinator.async_stop()
+        bluetooth.async_rediscover_address(hass, coordinator.address)
 
     return unload_ok
