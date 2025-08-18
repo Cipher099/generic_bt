@@ -160,8 +160,8 @@ async def async_setup_entry(
     coordinator.set_display_unit("kg"
         # "kg" if display_unit == UnitOfMass.KILOGRAMS else "lb"
     )
-    entities = [_update_unit(sensor, display_unit) for sensor in entities]
-    async_add_entities(entities)
+    # entities = [_update_unit(sensor, display_unit) for sensor in entities]
+    async_add_entities(SENSOR_DESCRIPTIONS)
     async_update_suggested_units(hass)
     await coordinator.async_start()
     _LOGGER.debug("Scale sensors setup completed for entry: %s", entry.entry_id)
@@ -293,7 +293,7 @@ class ScaleWeightSensorExtraStoredData(SensorExtraStoredData):
 
 
 class ScaleWeightSensor(ScaleSensor):
-    """Representation of a weight sensor for the Etekcity scale."""
+    """Representation of a weight sensor for the scale."""
 
     def __init__(
         self,

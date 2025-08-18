@@ -10,13 +10,21 @@ from bleak.exc import BleakError
 
 _LOGGER = logging.getLogger(__name__)
 
+connected_devices = set() 
+notify_uuid = "00001812-0000-1000-8000-00805f9b34fb"
 
 class GenericBTDevice:
     """Generic BT Device Class"""
-    def __init__(self, ble_device: str, detection_callback: function, scanning_mode: str = "passive"):
+    def __init__(
+            self, 
+            ble_device: str, 
+            detection_callback, 
+            disconnect_callback,
+            scanning_mode: str = "passive"):
         self._ble_device = ble_device
         self._client: BleakClient | None = BleakClient(
-            address_or_ble_device=ble_device)
+            address_or_ble_device=ble_device, 
+            disconnected_callback=disconnect_callback)
         self._scanner: BleakScanner | None = BleakScanner(
             service_uuids=ble_device,
             detection_callback=detection_callback,
@@ -73,5 +81,30 @@ class GenericBTDevice:
         _LOGGER.debug(
             "Starting ScaleDataUpdateCoordinator for address: %s", self._ble_device
         )
+        # https://bleak.readthedocs.io/en/latest/api/scanner.html
         await self._scanner.start()
+
+        while True:
+            device = await BleakScanner.find_device_by_filter(self._ble_device)
+
+            if device is None:
+                # maybe asyncio.sleep() here for some seconds if you aren't in a hurry
+                continue
+            try:
+                await self._client.connect()
+                print("connected to", device.address)
+                await self._scanner.start()
+
+
+                # Not sure
+                connected_devices.add(device.address)
+
+            except BleakError:
+                # if failed to connect, this is a no-op, if failed to start notifications, it will disconnect
+                await self._client.disconnect()
+                # I'm not sure if manually disconnecting triggers disconnected_callback, (pretty easy to figure this out though)
+                # if so, you will be getting disconnected_callback called twice
+                # if not, you should call it here
+                self.disconnect_callback(self._client)
+
         pass
