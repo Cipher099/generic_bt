@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import DOMAIN
-from .coordinator import GenericBTCoordinator
+from .coordinator import ScaleDataUpdateCoordinator
 from .generic_bt_api.device import GenericBTDevice
 
 
@@ -25,9 +25,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ble_device = bluetooth.async_ble_device_from_address(hass, address.upper(), True)
     if not ble_device:
         raise ConfigEntryNotReady(f"Could not find Generic BT Device with address {address}")
-    device = GenericBTDevice(ble_device)
+    # device = GenericBTDevice(ble_device)
 
-    coordinator = hass.data[DOMAIN][entry.entry_id] = GenericBTCoordinator(hass, _LOGGER, ble_device, device, entry.title, entry.unique_id, True)
+    coordinator = hass.data[DOMAIN][entry.entry_id] = ScaleDataUpdateCoordinator(hass, address=address)
     entry.async_on_unload(coordinator.async_start())
 
     if not await coordinator.async_wait_ready():
