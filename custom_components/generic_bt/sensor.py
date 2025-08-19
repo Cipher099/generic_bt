@@ -20,6 +20,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from bleak.backends.scanner import (
+    AdvertisementData,
+)
 
 from .const import CONF_BIRTHDATE, CONF_CALC_BODY_METRICS, CONF_HEIGHT, CONF_SEX, DOMAIN
 from .coordinator import ScaleDataUpdateCoordinator
@@ -182,7 +185,7 @@ class ScaleSensor(RestoreSensor):
         self._attr_device_info = DeviceInfo(
             connections={(CONNECTION_BLUETOOTH, address)},
             name=name,
-            manufacturer="Etekcity",
+            manufacturer="Generic",
         )
         self._coordinator = coordinator
 
@@ -207,7 +210,7 @@ class ScaleSensor(RestoreSensor):
 
     def handle_update(
         self,
-        data: any,
+        data: AdvertisementData,
     ) -> None:
         """Handle updated data from the scale.
 
@@ -319,7 +322,7 @@ class ScaleWeightSensor(ScaleSensor):
 
     def handle_update(
         self,
-        data: any,
+        data: AdvertisementData,
     ) -> None:
         """Handle updated data from the scale."""
 

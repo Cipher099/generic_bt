@@ -697,7 +697,7 @@ class ScaleDataUpdateCoordinator:
                     self._client = None
 
             # Get the optimal scanner
-            scanner = await self._get_bluetooth_scanner()
+            # scanner = await self._get_bluetooth_scanner()
 
             # Initialize appropriate client
             try:

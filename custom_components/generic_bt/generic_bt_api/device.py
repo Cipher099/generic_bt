@@ -25,7 +25,18 @@ class GenericBTDevice:
         pass
 
     async def stop(self):
-            pass
+        """ stop device from scanning """
+        _LOGGER.debug("Stopping device")
+        if self._scanner is not None:
+            await self._scanner.stop()
+        pass
+
+    async def async_stop(self):
+        """ stop device from scanning """
+        _LOGGER.debug("async Stopping device")
+        if self._scanner is not None:
+            await self._scanner.stop()
+        pass
 
     @property
     def connected(self):
@@ -86,7 +97,7 @@ class GenericBTDevice:
             # continue
         try:
             # await self._client.connect()
-            _LOGGER.debug("connected to", device.address)
+            _LOGGER.debug("Device connected to", device.address)
             await self._scanner.start()
 
             # Not sure
