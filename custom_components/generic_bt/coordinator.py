@@ -27,6 +27,7 @@ from bluetooth_data_tools import (
 from habluetooth import HaScannerRegistration
 from homeassistant.core import HomeAssistant, callback
 from .generic_bt_api.device import GenericBTDevice
+from .generic_bt_api.parser import BTScaleData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -720,6 +721,8 @@ class ScaleDataUpdateCoordinator:
                 if not data:
                     _LOGGER.warning("Received empty data update from scale %s", self.address)
                     return
+                
+                
                 
                 # decode the data to be published
 
