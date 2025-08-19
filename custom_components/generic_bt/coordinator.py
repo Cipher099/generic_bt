@@ -569,7 +569,7 @@ class ScaleDataUpdateCoordinator:
     and coordinates updates to the Home Assistant entities.
     """
 
-    _client: Optional[None] = None
+    _client: Optional[GenericBTDevice] = None
     _display_unit: Optional[str] = None
     _scanner_change_cb_unregister: Optional[Callable[[], None]] = None
 
@@ -852,7 +852,7 @@ class ScaleDataUpdateCoordinator:
         Args:
             data: The scale data to send to listeners.
         """
-        _LOGGER.debug("Devices: %s, Data: %s", devices, data)
+        # _LOGGER.debug("Devices: %s, Data: %s", devices, data)
         _LOGGER.debug("Manufature Data: %s", data.manufacturer_data)
         _LOGGER.debug("Platform Data: %s", data.platform_data)
         _LOGGER.debug("Service Data: %s", data.service_data)
