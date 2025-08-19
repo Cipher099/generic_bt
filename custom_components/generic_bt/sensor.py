@@ -112,33 +112,33 @@ async def async_setup_entry(
     address = entry.unique_id
     coordinator: ScaleDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # entities = [
-    #     ScaleWeightSensor(
-    #         entry.title,
-    #         address,
-    #         coordinator,
-    #         SensorEntityDescription(
-    #             key="kg",
-    #             icon="mdi:human-handsdown",
-    #             device_class=SensorDeviceClass.WEIGHT,
-    #             native_unit_of_measurement=UnitOfMass.KILOGRAMS,
-    #             state_class=SensorStateClass.MEASUREMENT,
-    #         ),
-    #     ),
-    #     ScaleSensor(
-    #         entry.title,
-    #         address,
-    #         coordinator,
-    #         SensorEntityDescription(
-    #             key="ohms",
-    #             icon="mdi:omega",
-    #             native_unit_of_measurement=Units.OHM,
-    #             state_class=SensorStateClass.MEASUREMENT,
-    #         ),
-    #     ),
-    # ]
+    entities = [
+        ScaleWeightSensor(
+            entry.title,
+            address,
+            coordinator,
+            SensorEntityDescription(
+                key="Weight",
+                icon="mdi:human-handsdown",
+                device_class=SensorDeviceClass.WEIGHT,
+                native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+                state_class=SensorStateClass.MEASUREMENT,
+            ),
+        ),
+        ScaleSensor(
+            entry.title,
+            address,
+            coordinator,
+            SensorEntityDescription(
+                key="Other",
+                icon="mdi:omega",
+                native_unit_of_measurement=Units.OHM,
+                state_class=SensorStateClass.MEASUREMENT,
+            ),
+        ),
+    ]
     coordinator.set_display_unit("kg")
-    async_add_entities(SENSOR_DESCRIPTIONS)
+    async_add_entities(entities)
     async_update_suggested_units(hass)
     await coordinator.async_start()
     _LOGGER.debug("Scale sensors setup completed for entry: %s", entry.entry_id)
