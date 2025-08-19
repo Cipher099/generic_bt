@@ -112,55 +112,32 @@ async def async_setup_entry(
     address = entry.unique_id
     coordinator: ScaleDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    entities = [
-        ScaleWeightSensor(
-            entry.title,
-            address,
-            coordinator,
-            SensorEntityDescription(
-                key="kg",
-                icon="mdi:human-handsdown",
-                device_class=SensorDeviceClass.WEIGHT,
-                native_unit_of_measurement=UnitOfMass.KILOGRAMS,
-                state_class=SensorStateClass.MEASUREMENT,
-            ),
-        ),
-        ScaleSensor(
-            entry.title,
-            address,
-            coordinator,
-            SensorEntityDescription(
-                key="ohms",
-                icon="mdi:omega",
-                native_unit_of_measurement=Units.OHM,
-                state_class=SensorStateClass.MEASUREMENT,
-            ),
-        ),
-    ]
-
-    # if entry.data.get(CONF_CALC_BODY_METRICS):
-    #     sex: Sex = Sex.Male if entry.data.get(CONF_SEX) == "Male" else Sex.Female
-
-    #     await coordinator.enable_body_metrics(
-    #         sex,
-    #         date.fromisoformat(entry.data.get(CONF_BIRTHDATE)),
-    #         entry.data.get(CONF_HEIGHT) / 100,
-    #     )
-    #     entities += [
-    #         ScaleSensor(entry.title, address, coordinator, desc)
-    #         for desc in SENSOR_DESCRIPTIONS
-    #     ]
-
-    def _update_unit(sensor: ScaleSensor, unit: str) -> ScaleSensor:
-        if sensor._attr_device_class == SensorDeviceClass.WEIGHT:
-            sensor._attr_suggested_unit_of_measurement = unit
-        return sensor
-
-    display_unit: UnitOfMass = entry.data.get(CONF_UNIT_SYSTEM)
-    coordinator.set_display_unit("kg"
-        # "kg" if display_unit == UnitOfMass.KILOGRAMS else "lb"
-    )
-    # entities = [_update_unit(sensor, display_unit) for sensor in entities]
+    # entities = [
+    #     ScaleWeightSensor(
+    #         entry.title,
+    #         address,
+    #         coordinator,
+    #         SensorEntityDescription(
+    #             key="kg",
+    #             icon="mdi:human-handsdown",
+    #             device_class=SensorDeviceClass.WEIGHT,
+    #             native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+    #             state_class=SensorStateClass.MEASUREMENT,
+    #         ),
+    #     ),
+    #     ScaleSensor(
+    #         entry.title,
+    #         address,
+    #         coordinator,
+    #         SensorEntityDescription(
+    #             key="ohms",
+    #             icon="mdi:omega",
+    #             native_unit_of_measurement=Units.OHM,
+    #             state_class=SensorStateClass.MEASUREMENT,
+    #         ),
+    #     ),
+    # ]
+    coordinator.set_display_unit("kg")
     async_add_entities(SENSOR_DESCRIPTIONS)
     async_update_suggested_units(hass)
     await coordinator.async_start()

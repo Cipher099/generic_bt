@@ -16,10 +16,7 @@ notify_uuid = "00001812-0000-1000-8000-00805f9b34fb"
 
 class GenericBTDevice:
     """Generic BT Device Class"""
-    def __init__(
-            self, 
-            ble_device: str
-            ):
+    def __init__(self, ble_device: str):
         self._ble_device = ble_device
         self._client_stack = AsyncExitStack()
         self._lock = asyncio.Lock()
@@ -64,18 +61,16 @@ class GenericBTDevice:
         print(data)
         return data
 
-    def update_from_advertisement(self, advertisement):
-        _LOGGER.debug(advertisement, exc_info=True)
-        print(advertisement)
-        pass
+    # def update_from_advertisement(self, advertisement):
+    #     _LOGGER.debug(advertisement, exc_info=True)
+    #     print(advertisement)
+    #     pass
 
     async def async_start(self, detection_callback, scanning_mode: str = "passive"):
         _LOGGER.debug(
             "Starting ScaleDataUpdateCoordinator for address: %s", self._ble_device
         )
         # https://bleak.readthedocs.io/en/latest/api/scanner.html
-        # await self._scanner.start()
-
         self._client: BleakClient | None = BleakClient(
             address_or_ble_device=self._ble_device)
         self._scanner: BleakScanner | None = BleakScanner(
@@ -83,7 +78,9 @@ class GenericBTDevice:
             detection_callback=detection_callback,
             scanning_mode= scanning_mode)
 
-        while True:
+        found = False
+
+        while not found:
             device = await BleakScanner.find_device_by_address(self._ble_device)
 
             if device is None:
@@ -96,7 +93,9 @@ class GenericBTDevice:
                 await self._scanner.start()
 
                 # Not sure
-                connected_devices.add(device.address)
+                # connected_devices.add(device.address)
+
+                found = True
 
             except BleakError:
                 # if failed to connect, this is a no-op, if failed to start notifications, it will disconnect
