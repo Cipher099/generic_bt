@@ -221,17 +221,17 @@ class ScaleSensor(RestoreSensor):
             data: The new scale data.
 
         """
-        if measurement := data.measurements.get(self.entity_description.key):
-            _LOGGER.debug(
-                "Received update for sensor %s: %s",
-                self.entity_id,
-                measurement,
-            )
-            self._attr_available = True
-            self._attr_native_value = measurement
+        # if measurement := data.measurements.get(self.entity_description.key):
+        _LOGGER.debug(
+            "Received update for sensor %s: %s",
+            self.entity_id,
+            data,
+        )
+        self._attr_available = True
+        self._attr_native_value = data.rssi
 
-            self.async_write_ha_state()
-            _LOGGER.debug("Sensor %s updated successfully", self.entity_id)
+        self.async_write_ha_state()
+        _LOGGER.debug("Sensor %s updated successfully", self.entity_id)
 
 
 HW_VERSION_KEY = "hw_version"
@@ -331,24 +331,9 @@ class ScaleWeightSensor(ScaleSensor):
         device_entry = device_registry.async_get_device(
             connections={(CONNECTION_BLUETOOTH, address)}
         )
-        if device_entry and (
-            device_entry.hw_version != data.hw_version
-            or device_entry.sw_version != data.sw_version
-        ):
-            hw_version = data.hw_version
-            if hw_version is None or hw_version == "":
-                hw_version = device_entry.hw_version
-
-            sw_version = data.sw_version
-            if sw_version is None or sw_version == "":
-                sw_version = device_entry.sw_version
-
-            device_registry.async_update_device(
-                device_entry.id, hw_version=hw_version, sw_version=sw_version
-            )
-            self._attr_device_info.update(
-                {HW_VERSION_KEY: hw_version, SW_VERSION_KEY: sw_version}
-            )
+        device_registry.async_update_device(
+            device_entry.id
+        )
 
         super().handle_update(data)
 

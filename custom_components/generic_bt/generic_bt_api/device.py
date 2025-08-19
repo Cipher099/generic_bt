@@ -7,12 +7,16 @@ from contextlib import AsyncExitStack
 
 from bleak import BleakClient, BleakScanner
 from bleak.exc import BleakError
+from bleak.backends.scanner import (
+    AdvertisementData,
+    AdvertisementDataCallback,
+    )
 
 
 _LOGGER = logging.getLogger(__name__)
 
 connected_devices = set() 
-notify_uuid = "00001812-0000-1000-8000-00805f9b34fb"
+notify_uuid = ["00001812-0000-1000-8000-00805f9b34fb", "00001812-0000-1000-8000-00805f9b34fb"]
 
 class GenericBTDevice:
     """Generic BT Device Class"""
@@ -22,6 +26,9 @@ class GenericBTDevice:
         self._lock = asyncio.Lock()
 
     async def update(self):
+        """ Attempt to connect to the device? """
+        self._client = BleakClient(
+            address_or_ble_device=self._ble_device)
         pass
 
     async def stop(self):
@@ -67,43 +74,32 @@ class GenericBTDevice:
         print(data)
         return data
 
-    # def update_from_advertisement(self, advertisement):
-    #     _LOGGER.debug(advertisement, exc_info=True)
-    #     print(advertisement)
-    #     pass
-
-    async def async_start(self, detection_callback, scanning_mode: str = "passive"):
+    async def async_start(self, detection_callback: AdvertisementDataCallback, scanning_mode: str = "passive"):
         _LOGGER.debug(
-            "Starting ScaleDataUpdateCoordinator for address: %s", self._ble_device
+            "Device Starting ScaleDataUpdateCoordinator for address: %s", self._ble_device
         )
         # https://bleak.readthedocs.io/en/latest/api/scanner.html
-        self._client: BleakClient | None = BleakClient(
+        self._client = BleakClient(
             address_or_ble_device=self._ble_device)
-        self._scanner: BleakScanner | None = BleakScanner(
-            service_uuids=self._ble_device,
+        self._scanner = BleakScanner(
+            service_uuids=notify_uuid,
             detection_callback=detection_callback,
-            scanning_mode= scanning_mode)
-
-        device = await BleakScanner.find_device_by_address(self._ble_device)
-
-        if device is None:
-            # maybe asyncio.sleep() here for some seconds if you aren't in a hurry
-            asyncio.sleep(10)
-            # continue
+            scanning_mode=scanning_mode)
         try:
-            # await self._client.connect()
-            _LOGGER.debug("Device connected to", device.address)
+            stop_event = asyncio.Event()
+
+            _LOGGER.debug("Scanning for Device(s)")
             await self._scanner.start()
+            await stop_event.wait()
 
-            # Not sure
-            # connected_devices.add(device.address)
-
-        except BleakError:
+        except BleakError as bleakError:
             # if failed to connect, this is a no-op, if failed to start notifications, it will disconnect
             await self._client.disconnect()
+            await self._scanner.stop()
             # I'm not sure if manually disconnecting triggers disconnected_callback, (pretty easy to figure this out though)
             # if so, you will be getting disconnected_callback called twice
             # if not, you should call it here
                 # self.disconnect_callback(self._client)
+            _LOGGER.debug(bleakError)
 
         pass

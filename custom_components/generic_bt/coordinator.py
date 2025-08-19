@@ -565,7 +565,7 @@ class ScaleDataUpdateCoordinator:
     """
     Coordinator to manage data updates for a scale device.
 
-    This class handles the communication with the Etekcity Smart Fitness Scale
+    This class handles the communication with the Smart Fitness Scale
     and coordinates updates to the Home Assistant entities.
     """
 
@@ -696,8 +696,52 @@ class ScaleDataUpdateCoordinator:
                 finally:
                     self._client = None
 
+            def update(data):
+                _LOGGER.debug("Update called in coordinator")
+                _LOGGER.debug(data)
+                
+                pass
+
+            self.add_listener(update_callback=update)
+
             # Get the optimal scanner
             # scanner = await self._get_bluetooth_scanner()
+            def update_listeners(device: BLEDevice, data: AdvertisementData):
+                """Update all registered listeners with improved logging.
+
+                Args:
+                    data: The scale data to send to listeners.
+                """
+                _LOGGER.info("addr: %s, name: %s, %r", device.address, device.name, data)
+                _LOGGER.debug("Manufature Data: %s", data.manufacturer_data)
+                _LOGGER.debug("Platform Data: %s", data.platform_data)
+                _LOGGER.debug("Service Data: %s", data.service_data)
+
+                if not data:
+                    _LOGGER.warning("Received empty data update from scale %s", self.address)
+                    return
+                
+                # decode the data to be published
+
+                # Log received measurements
+                # measurements = list(data.measurements.keys())
+                # _LOGGER.debug(
+                #     "Received data update from scale %s with %d measurements: %s",
+                #     self.address,
+                #     len(measurements),
+                #     ", ".join(measurements),
+                # )
+
+                # Update all listeners
+                listener_count = len(self._listeners)
+                _LOGGER.debug("Updating %d listeners with new scale data", listener_count)
+
+                # Make a copy of listeners to avoid modification during iteration
+                for update_callback in list(self._listeners.values()):
+                    try:
+                        update_callback(data)
+                    except Exception as ex:
+                        _LOGGER.error("Error updating listener: %s", ex)
 
             # Initialize appropriate client
             try:
@@ -705,7 +749,7 @@ class ScaleDataUpdateCoordinator:
                 self._client = GenericBTDevice(self.address)
 
                 await asyncio.wait_for(self._client.async_start(
-                    self.update_listeners, self.disconnect_listener), timeout=30.0)
+                    detection_callback=update_listeners), timeout=30.0)
                 _LOGGER.debug("Scale client started successfully")
             except asyncio.TimeoutError:
                 _LOGGER.error(
@@ -763,7 +807,7 @@ class ScaleDataUpdateCoordinator:
         listening for updates from the scale.
         """
         _LOGGER.debug(
-            "Starting ScaleDataUpdateCoordinator for address: %s", self.address
+            "Coordinator Starting ScaleDataUpdateCoordinator for address: %s", self.address
         )
 
         # Clean up any existing registration callback
@@ -821,7 +865,7 @@ class ScaleDataUpdateCoordinator:
 
     @callback
     def add_listener(
-        self, update_callback: Callable[[any], None]
+        self, update_callback: Callable[[AdvertisementData], None]
     ) -> Callable[[], None]:
         """Listen for data updates.
 
@@ -844,42 +888,6 @@ class ScaleDataUpdateCoordinator:
     def disconnect_listener(self, devices: BLEDevice, data: AdvertisementData) -> None:
         _LOGGER.debug("Disconnected")
         pass
-
-    @callback
-    def update_listeners(self, devices: BLEDevice, data: AdvertisementData) -> None:
-        """Update all registered listeners with improved logging.
-
-        Args:
-            data: The scale data to send to listeners.
-        """
-        # _LOGGER.debug("Devices: %s, Data: %s", devices, data)
-        _LOGGER.debug("Manufature Data: %s", data.manufacturer_data)
-        _LOGGER.debug("Platform Data: %s", data.platform_data)
-        _LOGGER.debug("Service Data: %s", data.service_data)
-
-        if not data:
-            _LOGGER.warning("Received empty data update from scale %s", self.address)
-            return
-
-        # Log received measurements
-        measurements = list(data.measurements.keys())
-        _LOGGER.debug(
-            "Received data update from scale %s with %d measurements: %s",
-            self.address,
-            len(measurements),
-            ", ".join(measurements),
-        )
-
-        # Update all listeners
-        listener_count = len(self._listeners)
-        _LOGGER.debug("Updating %d listeners with new scale data", listener_count)
-
-        # Make a copy of listeners to avoid modification during iteration
-        for update_callback in list(self._listeners.values()):
-            try:
-                update_callback(data)
-            except Exception as ex:
-                _LOGGER.error("Error updating listener: %s", ex)
 
     async def enable_body_metrics(
         self, sex: Sex, birthdate: date, height_m: float
