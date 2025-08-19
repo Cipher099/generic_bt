@@ -27,15 +27,10 @@ class GenericBTDevice:
     async def stop(self):
         """ stop device from scanning """
         _LOGGER.debug("Stopping device")
-        if self._scanner is not None:
-            await self._scanner.stop()
-        pass
 
     async def async_stop(self):
         """ stop device from scanning """
         _LOGGER.debug("async Stopping device")
-        if self._scanner is not None:
-            await self._scanner.stop()
         pass
 
     @property
