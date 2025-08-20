@@ -125,7 +125,7 @@ async def async_setup_entry(
                 key="Weight",
                 icon="mdi:human-handsdown",
                 device_class=SensorDeviceClass.WEIGHT,
-                native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+                # native_unit_of_measurement=UnitOfMass.KILOGRAMS,
                 state_class=SensorStateClass.MEASUREMENT,
             ),
         ),
@@ -229,7 +229,7 @@ class ScaleSensor(RestoreSensor):
             data,
         )
         self._attr_available = True
-        self._attr_native_value = data
+        self._attr_native_value = data.weight_kg
 
         self.async_write_ha_state()
         _LOGGER.debug("Sensor %s updated successfully", self.entity_id)
@@ -323,7 +323,7 @@ class ScaleWeightSensor(ScaleSensor):
 
     def handle_update(
         self,
-        data: AdvertisementData,
+        data: BTScaleData,
     ) -> None:
         """Handle updated data from the scale."""
 

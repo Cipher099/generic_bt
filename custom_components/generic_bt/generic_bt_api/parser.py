@@ -26,15 +26,15 @@ class BTScaleData:
     Have a look here: https://github.com/oliexdev/openScale/blob/master/android_app/app/src/main/java/com/health/openscale/core/bluetooth/BluetoothOneByoneNew.java#L32
 
     """
-    weight: str
-    impedance: str
-    timestamp: str
+    weight: str = "0"
+    impedance: str = "0"
+    timestamp: str = "0"
 
     def __init__(self, data: AdvertisementData):
         _LOGGER.debug("Manufacture Data: %s", data.manufacturer_data) # data to be decoded
         _LOGGER.debug("Platform Data: %s", data.platform_data)
         _LOGGER.debug("Service Data: %s", data.service_data)
-        self.parse_scale_packet(data=data.manufacturer_data)
+        self.parse_scale_packet(data=data.manufacturer_data.pop(65380))
 
     def _parse_scale_data(packet: bytes) -> float:
         if len(packet) != 17:
@@ -68,64 +68,51 @@ class BTScaleData:
         timestamp = struct.unpack('>I', data[offset:offset + 4])[0]
         return datetime.utcfromtimestamp(timestamp)
 
-    def parse_scale_packet(self, data: bytearray):
-        if not data:
+    def parse_scale_packet(self, data_bytes: bytearray):
+        if not data_bytes:
             _LOGGER.debug("Received an empty message")
             return
 
-        if len(data) < MSG_LENGTH:
-            _LOGGER.debug("Message too short")
-            return
+        _LOGGER.debug("Data: %r", data_bytes)
+        # if len(data) < MSG_LENGTH:
+        #     _LOGGER.debug("Message too short")
+        #     return
 
-        if not (data[0] == HEADER_BYTES[0] and data[1] == HEADER_BYTES[1]):
-            _LOGGER.debug("Unrecognized message header")
-            return
+        # if not (data[0] == HEADER_BYTES[0] and data[1] == HEADER_BYTES[1]):
+        #     _LOGGER.debug("Unrecognized message header")
+        #     return
 
-        msg_type = data[2]
+        # Unpack the data (little-endian where applicable)
+        # year = data_bytes[2] + (data_bytes[3] << 8)
+        # month = data_bytes[4]
+        # day_or_hour = data_bytes[5]
+        # minute_or_id = data_bytes[6]
 
-        if msg_type == 0x00:
-            # Historic measurement (skip real-time unless flagged)
-            if data[7] != 0x80:
-                _LOGGER.debug("Received real-time measurement, skipping.")
-                return
+        weight_raw = data_bytes[9] + (data_bytes[10] << 8)
 
-            self.timestamp = self.get_timestamp32(data, 3)
-            self.raw_weight = self.from_unsigned_int24_be(data[8:11]) & 0x03FFFF
-            self.weight = self.raw_weight / 1000.0  # Scale to kg
-            self.impedance = self.from_unsigned_int16_be(data[15:17])
+        # Guessing units - adjust if needed
+        weight_kg = weight_raw / 10  # assuming scale uses 0.1kg units
+        weight_lb = weight_raw / 10 * 2.20462
 
-            _LOGGER.debug(f"[Historic] Weight: {self.weight} kg, Impedance: {self.impedance}, Time: {self.timestamp}")
-            # return {
-            #     "type": "historic",
-            #     "weight_kg": self.weight,
-            #     "impedance": self.impedance,
-            #     "timestamp": self.timestamp
-            # }
+        unit_flag = data_bytes[15]
+        unit = "kg" if unit_flag == 1 else "lb"
 
-        elif msg_type == 0x80:
-            # Final real-time weight
-            self.raw_weight = self.from_unsigned_int24_be(data[3:6]) & 0x03FFFF
-            self.weight = self.raw_weight / 1000.0
-            _LOGGER.debug(f"[Realtime] Weight: {self.weight} kg")
-            # return {
-            #     "type": "realtime",
-            #     "weight_kg": self.weight
-            # }
-
-        elif msg_type == 0x01:
-            # Impedance packet
-            self.impedance = self.from_unsigned_int16_be(data[4:6])
-            _LOGGER.debug(f"[Realtime] Impedance: {self.impedance}")
-            # return {
-            #     "type": "impedance",
-            #     "impedance": self.impedance
-            # }
-
-        else:
-            _LOGGER.debug("Unknown message type")
-            pass
+        # return {
+        #     "date_info": {
+        #         "year": year,
+        #         "month": month,
+        #         "day_or_hour": day_or_hour,
+        #         "minute_or_id": minute_or_id
+        #     },
+        self.raw_weight = weight_raw,
+        self.weight_kg = round(weight_kg, 1),
+        self.weight_lb = round(weight_lb, 1),
+        self.unit_flag = unit_flag,
+        self.unit_guess = unit,
+        self.full_bytes = list(data_bytes)
+        
         
     def __str__(self):
-        return "Weight: %s, Raw: %s", self.weight, self.raw_weight
+        return "Weight: %s, Raw: %s", self.weight_kg, self.raw_weight
 
     pass
