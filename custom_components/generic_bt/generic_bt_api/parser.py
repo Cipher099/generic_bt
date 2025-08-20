@@ -42,7 +42,7 @@ class BTScaleData:
         _LOGGER.debug("Platform Data: %s", data.platform_data)
         _LOGGER.debug("Service Data: %s", data.service_data)
         self.calculation_object = OneByoneNewLib(sex=SEX, age=AGE, height=HEIGHT, people_type=PEOPLE_TYPE)
-        self.parse_scale_packet(data=data.manufacturer_data.pop(65380))
+        self.parse_scale_packet(data_bytes=data.manufacturer_data.pop(65380))
 
     def _parse_scale_data(packet: bytes) -> float:
         if len(packet) != 17:
@@ -88,13 +88,14 @@ class BTScaleData:
         weight_lb = weight_raw / 100 * 2.20462
 
         # Impedance appears to be at byte 9–10
-        impedance_raw = int.from_bytes(data_bytes[9:11], 'little')  # f8 2f = 0x2ff8 = 12280
+        impedance_raw = int.from_bytes(data_bytes[11:13], 'little')  # f8 2f = 0x2ff8 = 12280
 
         unit_flag = data_bytes[15]
         unit = "kg" if unit_flag == 1 else "lb"
 
         self.raw_weight = weight_raw
         self.weight_kg = weight_kg
+        self.impedance = impedance_raw
         self.bmi = self.calculation_object.get_bmi(weight_raw)
         self.bmmr = self.calculation_object.get_bmmr(weight=weight_kg)
         self.fat_percentage  = self.calculation_object.get_body_fat_percentage(weight=weight_kg, impedance=impedance_raw)
@@ -108,7 +109,6 @@ class BTScaleData:
         self.unit_flag = unit_flag
         self.unit_guess = unit
         self.full_bytes = list(data_bytes)
-        
         
     def __str__(self):
         return "Weight: %s, Raw: %s", self.weight_kg, self.raw_weight
