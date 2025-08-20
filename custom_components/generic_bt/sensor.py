@@ -26,6 +26,7 @@ from bleak.backends.scanner import (
 
 from .const import CONF_BIRTHDATE, CONF_CALC_BODY_METRICS, CONF_HEIGHT, CONF_SEX, DOMAIN
 from .coordinator import ScaleDataUpdateCoordinator
+from .generic_bt_api.parser import BTScaleData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -210,7 +211,7 @@ class ScaleSensor(RestoreSensor):
 
     def handle_update(
         self,
-        data: AdvertisementData,
+        data: BTScaleData,
     ) -> None:
         """Handle updated data from the scale.
 
@@ -228,7 +229,7 @@ class ScaleSensor(RestoreSensor):
             data,
         )
         self._attr_available = True
-        self._attr_native_value = data.rssi
+        self._attr_native_value = data
 
         self.async_write_ha_state()
         _LOGGER.debug("Sensor %s updated successfully", self.entity_id)

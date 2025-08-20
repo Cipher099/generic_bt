@@ -26,12 +26,15 @@ class BTScaleData:
     Have a look here: https://github.com/oliexdev/openScale/blob/master/android_app/app/src/main/java/com/health/openscale/core/bluetooth/BluetoothOneByoneNew.java#L32
 
     """
+    weight: str
+    impedance: str
+    timestamp: str
 
     def __init__(self, data: AdvertisementData):
         _LOGGER.debug("Manufacture Data: %s", data.manufacturer_data) # data to be decoded
         _LOGGER.debug("Platform Data: %s", data.platform_data)
         _LOGGER.debug("Service Data: %s", data.service_data)
-        pass
+        self.parse_scale_packet(data=data.manufacturer_data)
 
     def _parse_scale_data(packet: bytes) -> float:
         if len(packet) != 17:
@@ -65,17 +68,17 @@ class BTScaleData:
         timestamp = struct.unpack('>I', data[offset:offset + 4])[0]
         return datetime.utcfromtimestamp(timestamp)
 
-    def parse_scale_packet(self, data):
+    def parse_scale_packet(self, data: bytearray):
         if not data:
-            print("Received an empty message")
+            _LOGGER.debug("Received an empty message")
             return
 
         if len(data) < MSG_LENGTH:
-            print("Message too short")
+            _LOGGER.debug("Message too short")
             return
 
         if not (data[0] == HEADER_BYTES[0] and data[1] == HEADER_BYTES[1]):
-            print("Unrecognized message header")
+            _LOGGER.debug("Unrecognized message header")
             return
 
         msg_type = data[2]
@@ -83,43 +86,46 @@ class BTScaleData:
         if msg_type == 0x00:
             # Historic measurement (skip real-time unless flagged)
             if data[7] != 0x80:
-                print("Received real-time measurement, skipping.")
+                _LOGGER.debug("Received real-time measurement, skipping.")
                 return
 
-            timestamp = self.get_timestamp32(data, 3)
-            raw_weight = self.from_unsigned_int24_be(data[8:11]) & 0x03FFFF
-            weight = raw_weight / 1000.0  # Scale to kg
-            impedance = self.from_unsigned_int16_be(data[15:17])
+            self.timestamp = self.get_timestamp32(data, 3)
+            self.raw_weight = self.from_unsigned_int24_be(data[8:11]) & 0x03FFFF
+            self.weight = self.raw_weight / 1000.0  # Scale to kg
+            self.impedance = self.from_unsigned_int16_be(data[15:17])
 
-            print(f"[Historic] Weight: {weight} kg, Impedance: {impedance}, Time: {timestamp}")
-            return {
-                "type": "historic",
-                "weight_kg": weight,
-                "impedance": impedance,
-                "timestamp": timestamp
-            }
+            _LOGGER.debug(f"[Historic] Weight: {self.weight} kg, Impedance: {self.impedance}, Time: {self.timestamp}")
+            # return {
+            #     "type": "historic",
+            #     "weight_kg": self.weight,
+            #     "impedance": self.impedance,
+            #     "timestamp": self.timestamp
+            # }
 
         elif msg_type == 0x80:
             # Final real-time weight
-            raw_weight = self.from_unsigned_int24_be(data[3:6]) & 0x03FFFF
-            weight = raw_weight / 1000.0
-            print(f"[Realtime] Weight: {weight} kg")
-            return {
-                "type": "realtime",
-                "weight_kg": weight
-            }
+            self.raw_weight = self.from_unsigned_int24_be(data[3:6]) & 0x03FFFF
+            self.weight = self.raw_weight / 1000.0
+            _LOGGER.debug(f"[Realtime] Weight: {self.weight} kg")
+            # return {
+            #     "type": "realtime",
+            #     "weight_kg": self.weight
+            # }
 
         elif msg_type == 0x01:
             # Impedance packet
-            impedance = self.from_unsigned_int16_be(data[4:6])
-            print(f"[Realtime] Impedance: {impedance}")
-            return {
-                "type": "impedance",
-                "impedance": impedance
-            }
+            self.impedance = self.from_unsigned_int16_be(data[4:6])
+            _LOGGER.debug(f"[Realtime] Impedance: {self.impedance}")
+            # return {
+            #     "type": "impedance",
+            #     "impedance": self.impedance
+            # }
 
         else:
-            print("Unknown message type")
-            return
+            _LOGGER.debug("Unknown message type")
+            pass
+        
+    def __str__(self):
+        return "Weight: %s, Raw: %s", self.weight, self.raw_weight
 
     pass

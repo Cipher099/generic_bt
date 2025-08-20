@@ -714,17 +714,17 @@ class ScaleDataUpdateCoordinator:
                     data: The scale data to send to listeners.
                 """
                 _LOGGER.info("addr: %s, name: %s, %r", device.address, device.name, data)
-                _LOGGER.debug("Manufature Data: %s", data.manufacturer_data)
-                _LOGGER.debug("Platform Data: %s", data.platform_data)
-                _LOGGER.debug("Service Data: %s", data.service_data)
+                # _LOGGER.debug("Manufature Data: %s", data.manufacturer_data)
+                # _LOGGER.debug("Platform Data: %s", data.platform_data)
+                # _LOGGER.debug("Service Data: %s", data.service_data)
 
                 if not data:
                     _LOGGER.warning("Received empty data update from scale %s", self.address)
                     return
                 
-                
-                
                 # decode the data to be published
+                new_data = BTScaleData(data)
+                _LOGGER.debug(new_data)
 
                 # Log received measurements
                 # measurements = list(data.measurements.keys())
@@ -742,7 +742,7 @@ class ScaleDataUpdateCoordinator:
                 # Make a copy of listeners to avoid modification during iteration
                 for update_callback in list(self._listeners.values()):
                     try:
-                        update_callback(data)
+                        update_callback(new_data)
                     except Exception as ex:
                         _LOGGER.error("Error updating listener: %s", ex)
 
@@ -868,7 +868,7 @@ class ScaleDataUpdateCoordinator:
 
     @callback
     def add_listener(
-        self, update_callback: Callable[[AdvertisementData], None]
+        self, update_callback: Callable[[BTScaleData], None]
     ) -> Callable[[], None]:
         """Listen for data updates.
 
