@@ -124,22 +124,108 @@ async def async_setup_entry(
             SensorEntityDescription(
                 key="Weight",
                 icon="mdi:human-handsdown",
-                device_class=SensorDeviceClass.WEIGHT,
-                # native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+                # device_class=SensorDeviceClass.WEIGHT,
+                native_unit_of_measurement=UnitOfMass.KILOGRAMS,
                 state_class=SensorStateClass.MEASUREMENT,
             ),
         ),
-        ScaleSensor(
+        PercentageSensor(
             entry.title,
             address,
             coordinator,
             SensorEntityDescription(
-                key="Other",
-                icon="mdi:omega",
-                native_unit_of_measurement=Units.OHM,
+                key="WaterPercentage",
+                icon="mdi:human-handsdown",
+                # device_class=SensorDeviceClass.WEIGHT,
+                # native_unit_of_measurement=UnitOfMass.KILOGRAMS,
                 state_class=SensorStateClass.MEASUREMENT,
             ),
         ),
+        PercentageSensor(
+            entry.title,
+            address,
+            coordinator,
+            SensorEntityDescription(
+                key="ProteinPercentage",
+                icon="mdi:human-handsdown",
+                # device_class=SensorDeviceClass.WEIGHT,
+                # native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+                state_class=SensorStateClass.MEASUREMENT,
+            ),
+        ),
+        PercentageSensor(
+            entry.title,
+            address,
+            coordinator,
+            SensorEntityDescription(
+                key="FatPercentage",
+                icon="mdi:human-handsdown",
+                # device_class=SensorDeviceClass.WEIGHT,
+                # native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+                state_class=SensorStateClass.MEASUREMENT,
+            ),
+        ),
+        PercentageSensor(
+            entry.title,
+            address,
+            coordinator,
+            SensorEntityDescription(
+                key="WaterPercentage",
+                icon="mdi:human-handsdown",
+                # device_class=SensorDeviceClass.WEIGHT,
+                # native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+                state_class=SensorStateClass.MEASUREMENT,
+            ),
+        ),
+        MassSensor(
+            entry.title,
+            address,
+            coordinator,
+            SensorEntityDescription(
+                key="SkeletalMass",
+                icon="mdi:human-handsdown",
+                # device_class=SensorDeviceClass.WEIGHT,
+                # native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+                state_class=SensorStateClass.MEASUREMENT,
+            ),
+        ),
+        MassSensor(
+            entry.title,
+            address,
+            coordinator,
+            SensorEntityDescription(
+                key="MuscleMass",
+                icon="mdi:human-handsdown",
+                # device_class=SensorDeviceClass.WEIGHT,
+                # native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+                state_class=SensorStateClass.MEASUREMENT,
+            ),
+        ),
+        MassSensor(
+            entry.title,
+            address,
+            coordinator,
+            SensorEntityDescription(
+                key="BoneMass",
+                icon="mdi:human-handsdown",
+                # device_class=SensorDeviceClass.WEIGHT,
+                # native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+                state_class=SensorStateClass.MEASUREMENT,
+            ),
+        ),
+        MassSensor(
+            entry.title,
+            address,
+            coordinator,
+            SensorEntityDescription(
+                key="SkeletalMass",
+                icon="mdi:human-handsdown",
+                # device_class=SensorDeviceClass.WEIGHT,
+                # native_unit_of_measurement=UnitOfMass.KILOGRAMS,
+                state_class=SensorStateClass.MEASUREMENT,
+            ),
+        )
+
     ]
     coordinator.set_display_unit("kg")
     async_add_entities(entities)
@@ -336,7 +422,16 @@ class ScaleWeightSensor(ScaleSensor):
             device_entry.id
         )
 
-        super().handle_update(data)
+        _LOGGER.debug(
+            "Received update for sensor %s: %s",
+            self.entity_id,
+            data,
+        )
+        self._attr_available = True
+        self._attr_native_value = data.weight_kg
+
+        self.async_write_ha_state()
+        _LOGGER.debug("Sensor %s updated successfully", self.entity_id)
 
     @property
     def extra_state_attributes(self):
@@ -366,3 +461,310 @@ class ScaleWeightSensor(ScaleSensor):
         return ScaleWeightSensorExtraStoredData.from_dict(
             restored_last_extra_data.as_dict()
         )
+    
+class PercentageSensor(ScaleSensor):
+    """ The percentage Sensor dictated by the key """
+    def __init__(
+        self,
+        name: str,
+        address: str,
+        coordinator: ScaleDataUpdateCoordinator,
+        entity_description: SensorEntityDescription,
+    ) -> None:
+        self._id = address
+        super().__init__(name, address, coordinator, entity_description)
+
+    async def async_restore_data(self) -> bool:
+        """Restore last state from storage."""
+        if last_state := await self.async_get_last_sensor_data():
+            _LOGGER.debug("Restoring previous state for sensor: %s", self.entity_id)
+            self._attr_native_value = last_state.native_value
+            self._attr_native_unit_of_measurement = (
+                last_state.native_unit_of_measurement
+            )
+
+            address = self._id
+            device_registry = dr.async_get(self.hass)
+            device_entry = device_registry.async_get_device(
+                connections={(CONNECTION_BLUETOOTH, address)}
+            )
+            if device_entry and (
+                device_entry.hw_version != last_state.hw_version
+                or device_entry.sw_version != last_state.sw_version
+            ):
+                hw_version = last_state.hw_version
+                if hw_version is None or hw_version == "":
+                    hw_version = device_entry.hw_version
+
+                sw_version = last_state.sw_version
+                if sw_version is None or sw_version == "":
+                    sw_version = device_entry.sw_version
+
+                device_registry.async_update_device(
+                    device_entry.id, hw_version=hw_version, sw_version=sw_version
+                )
+                self._attr_device_info.update(
+                    {HW_VERSION_KEY: hw_version, SW_VERSION_KEY: sw_version}
+                )
+            return True
+        return False
+
+    def handle_update(
+        self,
+        data: BTScaleData,
+    ) -> None:
+        """Handle updated data from the scale."""
+
+        address = self._id
+        device_registry = dr.async_get(self.hass)
+        device_entry = device_registry.async_get_device(
+            connections={(CONNECTION_BLUETOOTH, address)}
+        )
+        device_registry.async_update_device(
+            device_entry.id
+        )
+
+        _LOGGER.debug(
+            "Received update for sensor %s: %s",
+            self.entity_id,
+            data,
+        )
+        self._attr_available = True
+        self._attr_native_value = data.fat_percentage
+
+        self.async_write_ha_state()
+        _LOGGER.debug("Sensor %s updated successfully", self.entity_id)
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes of the sensor."""
+        return {
+            HW_VERSION_KEY: self._attr_device_info.get(HW_VERSION_KEY),
+            SW_VERSION_KEY: self._attr_device_info.get(SW_VERSION_KEY),
+        }
+
+    @property
+    def extra_restore_state_data(self) -> ScaleWeightSensorExtraStoredData:
+        """Return sensor specific state data to be restored."""
+        return ScaleWeightSensorExtraStoredData(
+            self.native_value,
+            self.native_unit_of_measurement,
+            self._attr_device_info.get(HW_VERSION_KEY),
+            self._attr_device_info.get(SW_VERSION_KEY),
+        )
+
+    async def async_get_last_sensor_data(
+        self,
+    ) -> ScaleWeightSensorExtraStoredData | None:
+        """Restore Scale Sensor Extra Stored Data."""
+        if (restored_last_extra_data := await self.async_get_last_extra_data()) is None:
+            return None
+
+        return ScaleWeightSensorExtraStoredData.from_dict(
+            restored_last_extra_data.as_dict()
+        )
+    pass
+
+class MassSensor(ScaleSensor):
+    def __init__(
+        self,
+        name: str,
+        address: str,
+        coordinator: ScaleDataUpdateCoordinator,
+        entity_description: SensorEntityDescription,
+    ) -> None:
+        self._id = address
+        super().__init__(name, address, coordinator, entity_description)
+
+    async def async_restore_data(self) -> bool:
+        """Restore last state from storage."""
+        if last_state := await self.async_get_last_sensor_data():
+            _LOGGER.debug("Restoring previous state for sensor: %s", self.entity_id)
+            self._attr_native_value = last_state.native_value
+            self._attr_native_unit_of_measurement = (
+                last_state.native_unit_of_measurement
+            )
+
+            address = self._id
+            device_registry = dr.async_get(self.hass)
+            device_entry = device_registry.async_get_device(
+                connections={(CONNECTION_BLUETOOTH, address)}
+            )
+            if device_entry and (
+                device_entry.hw_version != last_state.hw_version
+                or device_entry.sw_version != last_state.sw_version
+            ):
+                hw_version = last_state.hw_version
+                if hw_version is None or hw_version == "":
+                    hw_version = device_entry.hw_version
+
+                sw_version = last_state.sw_version
+                if sw_version is None or sw_version == "":
+                    sw_version = device_entry.sw_version
+
+                device_registry.async_update_device(
+                    device_entry.id, hw_version=hw_version, sw_version=sw_version
+                )
+                self._attr_device_info.update(
+                    {HW_VERSION_KEY: hw_version, SW_VERSION_KEY: sw_version}
+                )
+            return True
+        return False
+
+    def handle_update(
+        self,
+        data: BTScaleData,
+    ) -> None:
+        """Handle updated data from the scale."""
+
+        address = self._id
+        device_registry = dr.async_get(self.hass)
+        device_entry = device_registry.async_get_device(
+            connections={(CONNECTION_BLUETOOTH, address)}
+        )
+        device_registry.async_update_device(
+            device_entry.id
+        )
+
+        _LOGGER.debug(
+            "Received update for sensor %s: %s",
+            self.entity_id,
+            data,
+        )
+        self._attr_available = True
+        self._attr_native_value = data.bone_mass
+
+        self.async_write_ha_state()
+        _LOGGER.debug("Sensor %s updated successfully", self.entity_id)
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes of the sensor."""
+        return {
+            HW_VERSION_KEY: self._attr_device_info.get(HW_VERSION_KEY),
+            SW_VERSION_KEY: self._attr_device_info.get(SW_VERSION_KEY),
+        }
+
+    @property
+    def extra_restore_state_data(self) -> ScaleWeightSensorExtraStoredData:
+        """Return sensor specific state data to be restored."""
+        return ScaleWeightSensorExtraStoredData(
+            self.native_value,
+            self.native_unit_of_measurement,
+            self._attr_device_info.get(HW_VERSION_KEY),
+            self._attr_device_info.get(SW_VERSION_KEY),
+        )
+
+    async def async_get_last_sensor_data(
+        self,
+    ) -> ScaleWeightSensorExtraStoredData | None:
+        """Restore Scale Sensor Extra Stored Data."""
+        if (restored_last_extra_data := await self.async_get_last_extra_data()) is None:
+            return None
+
+        return ScaleWeightSensorExtraStoredData.from_dict(
+            restored_last_extra_data.as_dict()
+        )
+    pass
+
+class VisceralSensor(ScaleSensor):
+    def __init__(
+        self,
+        name: str,
+        address: str,
+        coordinator: ScaleDataUpdateCoordinator,
+        entity_description: SensorEntityDescription,
+    ) -> None:
+        self._id = address
+        super().__init__(name, address, coordinator, entity_description)
+
+    async def async_restore_data(self) -> bool:
+        """Restore last state from storage."""
+        if last_state := await self.async_get_last_sensor_data():
+            _LOGGER.debug("Restoring previous state for sensor: %s", self.entity_id)
+            self._attr_native_value = last_state.native_value
+            self._attr_native_unit_of_measurement = (
+                last_state.native_unit_of_measurement
+            )
+
+            address = self._id
+            device_registry = dr.async_get(self.hass)
+            device_entry = device_registry.async_get_device(
+                connections={(CONNECTION_BLUETOOTH, address)}
+            )
+            if device_entry and (
+                device_entry.hw_version != last_state.hw_version
+                or device_entry.sw_version != last_state.sw_version
+            ):
+                hw_version = last_state.hw_version
+                if hw_version is None or hw_version == "":
+                    hw_version = device_entry.hw_version
+
+                sw_version = last_state.sw_version
+                if sw_version is None or sw_version == "":
+                    sw_version = device_entry.sw_version
+
+                device_registry.async_update_device(
+                    device_entry.id, hw_version=hw_version, sw_version=sw_version
+                )
+                self._attr_device_info.update(
+                    {HW_VERSION_KEY: hw_version, SW_VERSION_KEY: sw_version}
+                )
+            return True
+        return False
+
+    def handle_update(
+        self,
+        data: BTScaleData,
+    ) -> None:
+        """Handle updated data from the scale."""
+
+        address = self._id
+        device_registry = dr.async_get(self.hass)
+        device_entry = device_registry.async_get_device(
+            connections={(CONNECTION_BLUETOOTH, address)}
+        )
+        device_registry.async_update_device(
+            device_entry.id
+        )
+
+        _LOGGER.debug(
+            "Received update for sensor %s: %s",
+            self.entity_id,
+            data,
+        )
+        self._attr_available = True
+        self._attr_native_value = data.visceral
+
+        self.async_write_ha_state()
+        _LOGGER.debug("Sensor %s updated successfully", self.entity_id)
+
+    @property
+    def extra_state_attributes(self):
+        """Return the state attributes of the sensor."""
+        return {
+            HW_VERSION_KEY: self._attr_device_info.get(HW_VERSION_KEY),
+            SW_VERSION_KEY: self._attr_device_info.get(SW_VERSION_KEY),
+        }
+
+    @property
+    def extra_restore_state_data(self) -> ScaleWeightSensorExtraStoredData:
+        """Return sensor specific state data to be restored."""
+        return ScaleWeightSensorExtraStoredData(
+            self.native_value,
+            self.native_unit_of_measurement,
+            self._attr_device_info.get(HW_VERSION_KEY),
+            self._attr_device_info.get(SW_VERSION_KEY),
+        )
+
+    async def async_get_last_sensor_data(
+        self,
+    ) -> ScaleWeightSensorExtraStoredData | None:
+        """Restore Scale Sensor Extra Stored Data."""
+        if (restored_last_extra_data := await self.async_get_last_extra_data()) is None:
+            return None
+
+        return ScaleWeightSensorExtraStoredData.from_dict(
+            restored_last_extra_data.as_dict()
+        )
+    pass
