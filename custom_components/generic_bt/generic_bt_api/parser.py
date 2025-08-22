@@ -65,9 +65,12 @@ class BTScaleData:
         """Convert 3 bytes big-endian to int."""
         return (data[0] << 16) | (data[1] << 8) | data[2]
 
-    def from_unsigned_int16_be(self, data):
-        """Convert 2 bytes big-endian to int."""
-        return (data[0] << 8) | data[1]
+    # def from_unsigned_int16_be(self, data):
+    #     """Convert 2 bytes big-endian to int."""
+    #     return (data[0] << 8) | data[1]
+    
+    def from_unsigned_int16_be(self, data: bytes, offset: int) -> int:
+        return int.from_bytes(data[offset:offset+2], byteorder='big', signed=False)
 
     def get_timestamp32(self, data, offset):
         """Decode a 32-bit timestamp, interpreted as seconds since Unix epoch."""
@@ -83,15 +86,9 @@ class BTScaleData:
 
         weight_raw = data_bytes[9] + (data_bytes[10] << 8)
 
-        # Guessing units - adjust if needed
         weight_kg = weight_raw / 100  # assuming scale uses 0.1kg units
         weight_lb = weight_raw / 100 * 2.20462
-
-        # Impedance is the next 2 bytes (little endian)
-        cf_index = data_bytes.index(b'\xcf')
-        impedance_bytes = data_bytes[cf_index + 1 : cf_index + 3]
-        impedance_raw = int.from_bytes(impedance_bytes, byteorder='little')
-        # impedance_raw = int.from_bytes(data_bytes[11:13], 'little')  # f8 2f = 0x2ff8 = 12280
+        impedance_raw = self.from_unsigned_int16_be(data=data_bytes, offset=4)
 
         unit_flag = data_bytes[15]
         unit = "kg" if unit_flag == 1 else "lb"
