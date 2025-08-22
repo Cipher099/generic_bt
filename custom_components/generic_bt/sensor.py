@@ -129,6 +129,17 @@ async def async_setup_entry(
                 state_class=SensorStateClass.MEASUREMENT,
             ),
         ),
+        ScaleSensor(
+            entry.title,
+            address,
+            coordinator,
+            SensorEntityDescription(
+                key="Other",
+                icon="mdi:omega",
+                native_unit_of_measurement=Units.OHM,
+                state_class=SensorStateClass.MEASUREMENT,
+            ),
+        ),
         PercentageSensor(
             entry.title,
             address,
@@ -315,7 +326,7 @@ class ScaleSensor(RestoreSensor):
             data,
         )
         self._attr_available = True
-        self._attr_native_value = data.weight_kg
+        self._attr_native_value = data.impedance
 
         self.async_write_ha_state()
         _LOGGER.debug("Sensor %s updated successfully", self.entity_id)

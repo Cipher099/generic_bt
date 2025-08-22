@@ -87,8 +87,11 @@ class BTScaleData:
         weight_kg = weight_raw / 100  # assuming scale uses 0.1kg units
         weight_lb = weight_raw / 100 * 2.20462
 
-        # Impedance appears to be at byte 9–10
-        impedance_raw = int.from_bytes(data_bytes[11:13], 'little')  # f8 2f = 0x2ff8 = 12280
+        # Impedance is the next 2 bytes (little endian)
+        cf_index = data_bytes.index(b'\xcf')
+        impedance_bytes = data_bytes[cf_index + 1 : cf_index + 3]
+        impedance_raw = int.from_bytes(impedance_bytes, byteorder='little')
+        # impedance_raw = int.from_bytes(data_bytes[11:13], 'little')  # f8 2f = 0x2ff8 = 12280
 
         unit_flag = data_bytes[15]
         unit = "kg" if unit_flag == 1 else "lb"
