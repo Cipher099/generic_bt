@@ -42,7 +42,8 @@ class BTScaleData:
         _LOGGER.debug("Platform Data: %s", data.platform_data)
         _LOGGER.debug("Service Data: %s", data.service_data)
         self.calculation_object = OneByoneNewLib(sex=SEX, age=AGE, height=HEIGHT, people_type=PEOPLE_TYPE)
-        self.parse_scale_packet(data_bytes=data.manufacturer_data.pop(0))
+        byte_data = list(data.manufacturer_data.values())[0]
+        self.parse_scale_packet(data_bytes=byte_data)
 
     def _parse_scale_data(packet: bytes) -> float:
         if len(packet) != 17:
